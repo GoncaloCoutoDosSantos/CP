@@ -55,13 +55,19 @@ int k_means(float *cluster_x,float *cluster_y,float *arr_x,float *arr_y,int *n_e
 }
 
 int main(){
-	float arr_x[N],arr_y[N];
+	float *arr_x,*arr_y;
 	float cluster_x[K],cluster_y[K];
 	int n_elem_cluster[K];
 
-	inicio(N,K,arr_x,arr_y,cluster_x,cluster_y);
+	if(!(arr_x = malloc(sizeof(float) * N))) printf("erro allcar x\n");
+	if(!(arr_y = malloc(sizeof(float) * N))) printf("erro allcar y\n");
+
+	init(N,K,arr_x,arr_y,cluster_x,cluster_y);
 
 	int iterarion = k_means(cluster_x,cluster_y,arr_x,arr_y,n_elem_cluster);
+
+	free(arr_x);
+	free(arr_y);
 
 	print_ret(cluster_x,cluster_y,n_elem_cluster,N,K,iterarion);
 	return 0;

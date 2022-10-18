@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void inicio(int n_elem,int n_k,float *arr_x,float *arr_y,float *cluster_x,float *cluster_y) {
+void init(int n_elem,int n_k,float *arr_x,float *arr_y,float *cluster_x,float *cluster_y) {
 	 srand(10);
 	 for(int i = 0; i < n_elem; i++) {
 		 arr_x[i] = (float) rand() / RAND_MAX;
