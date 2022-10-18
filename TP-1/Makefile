@@ -3,7 +3,7 @@ BIN = bin/
 SRC = src/
 INCLUDES = include/
 EXEC = k_means
-CFLAGS = -ggdb
+CFLAGS = 
 .DEFAULT_GOAL = k_means
 
 k_means: $(SRC)k_means.c $(BIN)utils.o
