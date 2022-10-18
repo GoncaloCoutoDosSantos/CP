@@ -3,13 +3,13 @@
 
 #include "../include/utils.h"
 
-#define N 100000
+#define N 1000000
 #define K 4
 
 //return is number of iterarions
 int k_means(float *cluster_x,float *cluster_y,float *arr_x,float *arr_y,int *n_elem_cluster){
-	float mean_x[K],mean_y[K];
-	float dist_x[K],dist_y[K];
+	float mean_x[K],mean_y[K]; //keep values to calculate new centroid
+	float dist[K]; //auxiliar vector for calculate distance betwen centroid and a point 
 	int ret = 0;
 	char flag = 1;
 
@@ -24,12 +24,12 @@ int k_means(float *cluster_x,float *cluster_y,float *arr_x,float *arr_y,int *n_e
 		//primary loop calculate the 
 		for(int i = 0; i < N;i++){ 
 			for(int j = 0; j < K;j++){//calculate distance betewn point and centroids 
-				dist_x[j] = (arr_x[i] < cluster_x[j])? cluster_x[j] - arr_x[i]: arr_x[i] - cluster_x[j]; 
-				dist_y[j] = (arr_y[i] < cluster_y[j])? cluster_y[j] - arr_y[i]: arr_y[i] - cluster_y[j];
+				dist[j]  = (cluster_x[j] - arr_x[i]) * (cluster_x[j] - arr_x[i]); 
+				dist[j] += (cluster_y[j] - arr_y[i]) * (cluster_y[j] - arr_y[i]);
 			}
 
 			int ind = 0; //indice da menor distancia
-			for(int j = 1; j < K;j++) ind = (dist_x[j] + dist_y[j] < dist_x[ind] + dist_y[ind]) ?j:ind;
+			for(int j = 1; j < K;j++) ind = (dist[j] < dist[ind]) ?j:ind;
 			mean_x[ind] += arr_x[i];
 			mean_y[ind] += arr_y[i];
 			n_elem_cluster[ind]++; 
