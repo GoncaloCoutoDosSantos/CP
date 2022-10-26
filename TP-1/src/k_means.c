@@ -1,8 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <assert.h>
-
 #include "../include/utils.h"
 
 #define N 10000000
