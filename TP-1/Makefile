@@ -3,7 +3,7 @@ BIN = bin/
 SRC = src/
 INCLUDES = include/
 EXEC = k_means
-CFLAGS = 
+CFLAGS = -O2 -ftree-vectorize -msse4 -funroll-loops
 .DEFAULT_GOAL = k_means
 
 k_means: $(SRC)k_means.c $(BIN)utils.o
