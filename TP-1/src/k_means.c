@@ -10,12 +10,11 @@
 int k_means(float *cluster_x,float *cluster_y,float *arr_x,float *arr_y,int *n_elem_cluster){
 	float mean_x[K],mean_y[K]; //keep values to calculate new centroid
 	float dist[K]; //auxiliar vector to calculate distance between centroid and a point 
-	float *new_points,*old_points; // arrays that save the new and previous allocation of points to clusters
+	float *points; // arrays that save the new and previous allocation of points to clusters
 	int ret = -1; //keep number of iterations(starts at -1 not considering the setup iteration)
 	char flag = 1; //flag of k_means loop 
 
-	new_points = malloc(sizeof(float) * N);
-	old_points = calloc(sizeof(float) , N);
+	points = malloc(sizeof(float) * N);
 
 	while(flag){
 		//reset means and n_elem_cluster for calculations
@@ -39,13 +38,14 @@ int k_means(float *cluster_x,float *cluster_y,float *arr_x,float *arr_y,int *n_e
 				ind = (dist[j] < dist[ind]) ?j:ind; //saves the index of the lower distance centroid
 			}
 
-			new_points[i] = ind; // assigns the new lowest distance centroid to the point 
 
-			flag = (flag || old_points[i] != ind); // check if point centroid allocation is different for the point  
+			flag = (flag || points[i] != ind); // check if point centroid allocation is different for the point  
 
 			mean_x[ind] += arr_x[i]; // add this point to the sum of points belonging to cluster
 			mean_y[ind] += arr_y[i];
 			n_elem_cluster[ind]++; //update number of elements in cluster
+			
+			points[i] = ind; // assigns the new lowest distance centroid to the point 
 		}
 
 		//new centroids calculations 
@@ -54,17 +54,12 @@ int k_means(float *cluster_x,float *cluster_y,float *arr_x,float *arr_y,int *n_e
 			cluster_y[i] = mean_y[i] / (n_elem_cluster[i]);
 		}
 
-		float *aux = new_points;
-		new_points = old_points;
-		old_points = aux;
-
 		ret++;
 
 	}
 
 
-	free(new_points);
-	free(old_points);
+	free(points);
 
 
 	return ret;
