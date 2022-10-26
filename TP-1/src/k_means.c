@@ -9,47 +9,49 @@
 //return is number of iterarions
 int k_means(float *cluster_x,float *cluster_y,float *arr_x,float *arr_y,int *n_elem_cluster){
 	float mean_x[K],mean_y[K]; //keep values to calculate new centroid
-	float dist[K]; //auxiliar vector for calculate distance betwen centroid and a point 
-	float *new_points,*old_points;
-	int ret = 0;
-	char flag = 1;
+	float dist[K]; //auxiliar vector to calculate distance between centroid and a point 
+	float *new_points,*old_points; // arrays that save the new and previous allocation of points to clusters
+	int ret = -1; //keep number of iterations(starts at -1 not considering the setup iteration)
+	char flag = 1; //flag of k_means loop 
 
 	new_points = malloc(sizeof(float) * N);
 	old_points = calloc(sizeof(float) , N);
 
 	while(flag){
-		//reset means and n_elem_cluster for cluster calculation
+		//reset means and n_elem_cluster for calculations
 		for(int i = 0; i < K;i++){
 			mean_x[i] = 0;
 			mean_y[i] = 0;
 			n_elem_cluster[i] = 0;
 		}
 
-		flag = 0;
+		flag = 0; // assume that the final condition is met 
 
-		//primary loop calculate the 
+		//primary loop that assigns points to clusters
 		for(int i = 0; i < N;i++){ 
 
-			int ind = 0; //indice da menor distancia
-			for(int j = 0; j < K;j++){//calculate distance betewn point and centroids 
-				dist[j]  = (cluster_x[j] - arr_x[i]) * (cluster_x[j] - arr_x[i]); 
-				dist[j] += (cluster_y[j] - arr_y[i]) * (cluster_y[j] - arr_y[i]);
-				ind = (dist[j] < dist[ind]) ?j:ind;
+			int ind = 0; //lower distance index
+			for(int j = 0; j < K;j++){//calculate distance between points and centroids 
+				float x = (cluster_x[j] - arr_x[i]);
+				float y = (cluster_y[j] - arr_y[i]);
+				dist[j] = x * x;  
+				dist[j] += y * y;
+				ind = (dist[j] < dist[ind]) ?j:ind; //saves the index of the lower distance centroid
 			}
 
-			new_points[i] = ind;
+			new_points[i] = ind; // assigns the new lowest distance centroid to the point 
 
-			if(!flag)flag = (old_points[i] != ind)?1:flag;
+			flag = (flag || old_points[i] != ind); // check if point centroid allocation is different for the point  
 
-			mean_x[ind] += arr_x[i];
+			mean_x[ind] += arr_x[i]; // add this point to the sum of points belonging to cluster
 			mean_y[ind] += arr_y[i];
-			n_elem_cluster[ind]++; 
+			n_elem_cluster[ind]++; //update number of elements in cluster
 		}
 
 		//new centroids calculations 
 		for(int i = 0; i < K;i++){
-			cluster_x[i] = mean_x[i] / ((float)n_elem_cluster[i]);
-			cluster_y[i] = mean_y[i] / ((float)n_elem_cluster[i]);
+			cluster_x[i] = mean_x[i] / (n_elem_cluster[i]);
+			cluster_y[i] = mean_y[i] / (n_elem_cluster[i]);
 		}
 
 		float *aux = new_points;
@@ -73,8 +75,8 @@ int main(){
 	float cluster_x[K],cluster_y[K];
 	int n_elem_cluster[K];
 
-	if(!(arr_x = malloc(sizeof(float) * N))) printf("erro allcar x\n");
-	if(!(arr_y = malloc(sizeof(float) * N))) printf("erro allcar y\n");
+	arr_x = malloc(sizeof(float) * N);
+	arr_y = malloc(sizeof(float) * N);
 
 	init(N,K,arr_x,arr_y,cluster_x,cluster_y);
 
