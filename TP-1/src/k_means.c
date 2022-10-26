@@ -29,7 +29,7 @@ int k_means(float *cluster_x,float *cluster_y,float *arr_x,float *arr_y,int *n_e
 
 		//primary loop calculate the 
 		for(int i = 0; i < N;i++){ 
-			
+
 			int ind = 0; //indice da menor distancia
 			for(int j = 0; j < K;j++){//calculate distance betewn point and centroids 
 				dist[j]  = (cluster_x[j] - arr_x[i]) * (cluster_x[j] - arr_x[i]); 
@@ -39,7 +39,7 @@ int k_means(float *cluster_x,float *cluster_y,float *arr_x,float *arr_y,int *n_e
 
 			new_points[i] = ind;
 
-			flag = (old_points[i] != ind)?1:flag;
+			if(!flag)flag = (old_points[i] != ind)?1:flag;
 
 			mean_x[ind] += arr_x[i];
 			mean_y[ind] += arr_y[i];
