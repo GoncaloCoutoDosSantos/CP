@@ -4,7 +4,7 @@ SRC = src/
 INCLUDES = include/
 EXEC = k_means
 CFLAGS = -std=c99 -O2 -ftree-vectorize -msse4 -funroll-loops -g -fno-omit-frame-pointer -fopt-info -fopenmp 
-#CFLAGS = -std=c99 -O3  -ftree-vectorize -msse4 -fopt-info
+#CFLAGS = -std=c99 -O3 -fopenmp -fopt-info #-DTEST
 .DEFAULT_GOAL = k_means
 
 k_means: $(SRC)k_means.c $(BIN)utils.o
@@ -16,5 +16,8 @@ $(BIN)utils.o: $(SRC)utils.c $(INCLUDES)utils.h
 clean:
 	rm -r bin/*
 
+runseq:
+	./$(BIN)$(EXEC) 10000000 4 1
+
 run:
-	./$(BIN)$(EXEC) 10000000 4 2
+	./$(BIN)$(EXEC) 10000000 32 10
