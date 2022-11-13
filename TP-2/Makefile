@@ -3,8 +3,8 @@ BIN = bin/
 SRC = src/
 INCLUDES = include/
 EXEC = k_means
-CFLAGS = -std=c99 -O2 -ftree-vectorize -msse4 -funroll-loops -g -fno-omit-frame-pointer -fopt-info -fopenmp 
-#CFLAGS = -std=c99 -O3 -fopenmp -fopt-info #-DTEST
+#CFLAGS = -std=c99 -O2 -ftree-vectorize -msse4 -funroll-loops -g -fno-omit-frame-pointer -fopt-info -fopenmp 
+CFLAGS = -std=c99 -O3 -fopenmp -fopt-info -g -fno-omit-frame-pointer#-DTEST
 .DEFAULT_GOAL = k_means
 THREADS = 10
 

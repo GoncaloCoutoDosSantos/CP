@@ -31,7 +31,7 @@ int k_means(float *cluster_x,float *cluster_y,const float *arr_x,const float *ar
 		#pragma omp parallel
 		{
 
-			#pragma omp for
+			#pragma omp for   
 			for(int i = 0; i < N;i++){ 
 				int id =  omp_get_thread_num();
 				float min_dist = 10;
@@ -42,12 +42,8 @@ int k_means(float *cluster_x,float *cluster_y,const float *arr_x,const float *ar
 					float y = (cluster_y[j] - arr_y[i]);
 					dist[j] = x * x;  
 					dist[j] += y * y;
-					//ind = (dist[j] < min_dist) ?j:ind; //saves the index of the lower distance centroid
-					//min_dist = dist[ind];
-				}
-
-				for(int j = 0; j < K;j++){
-					ind = (dist[j] < dist[ind])?j:ind;
+					ind = (dist[j] < min_dist) ?j:ind; //saves the index of the lower distance centroid
+					min_dist = dist[ind];
 				}
 
 
