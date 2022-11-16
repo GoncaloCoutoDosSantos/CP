@@ -7,26 +7,26 @@
 
 //return is number of iterarions
 int k_means(float *cluster_x,float *cluster_y,const float *arr_x,const float *arr_y,int *n_elem_cluster,const int N,const int K,const int T){
-	float *points; // arrays that save the new and previous allocation of points to clusters
+	int *points; // arrays that save the new and previous allocation of points to clusters
 	int ret = 0; //keep number of iterations(starts at -1 not considering the setup iteration)
 
-	points = malloc(sizeof(float) * N);
+	points = malloc(sizeof(int) * N);
 	float mean_x[K],mean_y[K]; //keep values to calculate new centroid
 
 	for(int ite = 0; ite < 20;ite++){
-
+		//reset arrays
 		for(int i = 0; i < K;i++){
 				mean_x[i] = 0;	
 				mean_y[i] = 0;
 				n_elem_cluster[i] = 0;
 		}
 
-		//primary loop that assigns points to clusters
 
 		#pragma omp parallel
 		{
 
 			#pragma omp for
+			//primary loop that assigns points to clusters
 			for(int i = 0; i < N;i++){ 
 				float dist[K]; //auxiliar vector to calculate distance between centroid and a point 
 				int ind = 0; //lower distance index
@@ -37,7 +37,8 @@ int k_means(float *cluster_x,float *cluster_y,const float *arr_x,const float *ar
 					dist[j] += y * y;
 				}
 
-				for(int j = 0; j < K;j++){
+				//find minimum value for the distance between centroid and point
+				for(int j = 1; j < K;j++){
 					ind = (dist[j] < dist[ind])?j:ind;
 				}
 				
@@ -54,15 +55,13 @@ int k_means(float *cluster_x,float *cluster_y,const float *arr_x,const float *ar
 
 			}
 
-			#pragma omp single
+		}
+		
 			
-				//new centroids calculations 
-				for(int i = 0; i < K;i++){
-					cluster_x[i] = mean_x[i] / (n_elem_cluster[i]);
-					cluster_y[i] = mean_y[i] / (n_elem_cluster[i]);
-				}
-
-			
+		//new centroids calculations 
+		for(int i = 0; i < K;i++){
+			cluster_x[i] = mean_x[i] / (n_elem_cluster[i]);
+			cluster_y[i] = mean_y[i] / (n_elem_cluster[i]);
 		}
 
 		ret++;
