@@ -26,7 +26,7 @@ int k_means(float *cluster_x,float *cluster_y,const float *arr_x,const float *ar
 		#pragma omp parallel
 		{
 
-			#pragma omp for reduction(+:mean_x[:K]) reduction(+:mean_y[:K]) reduction(+:n_elem_cluster[:K])
+			#pragma omp for
 			for(int i = 0; i < N;i++){ 
 				float dist[K]; //auxiliar vector to calculate distance between centroid and a point 
 				int ind = 0; //lower distance index
@@ -40,15 +40,11 @@ int k_means(float *cluster_x,float *cluster_y,const float *arr_x,const float *ar
 				for(int j = 0; j < K;j++){
 					ind = (dist[j] < dist[ind])?j:ind;
 				}
-
-				mean_x[ind] += arr_x[i]; // add this point to the sum of points belonging to cluster
-				mean_y[ind] += arr_y[i];
-				n_elem_cluster[ind]++;
 				
 				points[i] = ind; // assigns the new lowest distance centroid to the point 
 			}
 
-			/*#pragma omp for reduction(+:mean_x[:K]) reduction(+:mean_y[:K]) reduction(+:n_elem_cluster[:K])
+			#pragma omp for reduction(+:mean_x[:K]) reduction(+:mean_y[:K]) reduction(+:n_elem_cluster[:K])
 			for(int i = 0; i < N; i++){
 				int ind = points[i];
 
@@ -56,7 +52,7 @@ int k_means(float *cluster_x,float *cluster_y,const float *arr_x,const float *ar
 				mean_y[ind] += arr_y[i];
 				n_elem_cluster[ind]++; //update number of elements in cluster
 
-			}*/
+			}
 
 			#pragma omp single
 			
