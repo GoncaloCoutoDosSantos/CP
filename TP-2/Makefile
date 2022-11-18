@@ -4,9 +4,9 @@ SRC = src/
 INCLUDES = include/
 EXEC = k_means
 #CFLAGS = -std=c99 -O2 -ftree-vectorize -msse4 -funroll-loops -g -fno-omit-frame-pointer -fopt-info -fopenmp 
-CFLAGS = -std=c99 -O3 -fopenmp -fopt-info -g -fno-omit-frame-pointer#-DTEST
+CFLAGS = -std=c99 -O3 -fopenmp -fopt-info -g -fno-omit-frame-pointer #-DTEST
 .DEFAULT_GOAL = k_means
-THREADS = 10
+THREADS = 40
 
 k_means: $(SRC)k_means.c $(BIN)utils.o
 	$(CC) $(CFLAGS) $(SRC)k_means.c $(BIN)utils.o -o $(BIN)$(EXEC)
@@ -20,5 +20,5 @@ clean:
 runseq:
 	./$(BIN)$(EXEC) 10000000 $(CP_CLUSTERS) 1
 
-run:
+runpar:
 	./$(BIN)$(EXEC) 10000000 $(CP_CLUSTERS) $(THREADS)
