@@ -34,19 +34,15 @@ __global__ void k_means(float *cluster_x,float *cluster_y,const float *arr_x,con
 			for(int i = 0; i < K;i++){
 				local_cluster_x[i] = cluster_x[i];
 				local_cluster_y[i] = cluster_y[i];
+				mean_x[i] = 0;	
+				mean_y[i] = 0;
+				local_elem_cluster[i] = 0;
 			}
 		}
 		__syncthreads();
 
 		local_arr_x[lid] = arr_x[id];
 		local_arr_y[lid] = arr_y[id];
-
-		//reset arrays
-		for(int i = 0; i < K;i++){
-				mean_x[i] = 0;	
-				mean_y[i] = 0;
-				local_elem_cluster[i] = 0;
-		}
 
 		
 		float dist[128]; 
@@ -81,9 +77,9 @@ __global__ void k_means(float *cluster_x,float *cluster_y,const float *arr_x,con
 			}
 
 			for(int i = 0;i < K;i++){
-				r_mean_x[mid + i] = mean_x[i];
-				r_mean_y[mid + i] = mean_y[i];
-				r_n_elem_cluster[mid + i] = local_elem_cluster[i];
+				atomicAdd(&r_mean_x[i],mean_x[i]);
+				atomicAdd(&r_mean_y[i],mean_y[i]);
+				atomicAdd(&r_n_elem_cluster[i],local_elem_cluster[i]);
 				//printf("mean_x[%d][%d]=%f | mean_y[%d][%d]=%f | elem[%d][%d]=%d\n",mid,i,mean_x[i],mid,i,mean_y[i],mid,i,local_elem_cluster[i]);
 			}
 		}
@@ -98,14 +94,14 @@ int launch_kernel(float *cluster_x,float *cluster_y,const float *arr_x,const flo
 	const int size_points = N * sizeof(float);
 	const int n_blocks = N/NUM_THREADS_PER_BLOCK + 1;
 
-	printf("blocos %d",K*n_blocks);
+	//printf("blocos %d",K*n_blocks);
 	
 	float *mean_x,*mean_y;
 	int *aux;
 
-	mean_x = (float *) malloc(K * n_blocks * sizeof(float));
-	mean_y = (float *) malloc(K * n_blocks * sizeof(float));
-	aux = (int *) malloc(K * n_blocks * sizeof(int));
+	mean_x = (float *) malloc(K * sizeof(float));
+	mean_y = (float *) malloc(K * sizeof(float));
+	aux = (int *) malloc(K * sizeof(int));
 
 	float *d_cluster_x;
 	float *d_cluster_y;
@@ -120,9 +116,9 @@ int launch_kernel(float *cluster_x,float *cluster_y,const float *arr_x,const flo
 	cudaMalloc((void**) &d_cluster_y, size_clusters);
 	cudaMalloc((void**) &d_arr_x, size_points);
 	cudaMalloc((void**) &d_arr_y, size_points);
-	cudaMalloc((void**) &d_n_elem_cluster, K * sizeof(int) * n_blocks);
-	cudaMalloc((void**) &d_mean_x, K * sizeof(float) * n_blocks);
-	cudaMalloc((void**) &d_mean_y, K * sizeof(float) * n_blocks);
+	cudaMalloc((void**) &d_n_elem_cluster, K * sizeof(int));
+	cudaMalloc((void**) &d_mean_x, K * sizeof(float));
+	cudaMalloc((void**) &d_mean_y, K * sizeof(float));
 
 
 	//copy data from host to device
@@ -133,21 +129,17 @@ int launch_kernel(float *cluster_x,float *cluster_y,const float *arr_x,const flo
 
 	//call Kernel
 	for(int ite = 0; ite < 20;ite++){
+		cudaMemset(d_mean_x,0,K * sizeof(float));
+		cudaMemset(d_mean_y,0,K * sizeof(float));
+		cudaMemset(d_n_elem_cluster,0,K * sizeof(int));
 		startKernelTime ();
 		k_means <<< N/NUM_THREADS_PER_BLOCK + 1, NUM_THREADS_PER_BLOCK >>> (d_cluster_x,d_cluster_y,d_arr_x,d_arr_y,d_mean_x,d_mean_y,d_n_elem_cluster,N,K);
 		//checkCUDAError("kernel");
 		stopKernelTime ();
-		cudaMemcpy (mean_x,d_mean_x, K * sizeof(float) * n_blocks,cudaMemcpyDeviceToHost);
-		cudaMemcpy (mean_y,d_mean_y, K * sizeof(float) * n_blocks,cudaMemcpyDeviceToHost);
-		cudaMemcpy (aux,d_n_elem_cluster, K * sizeof(int) * n_blocks,cudaMemcpyDeviceToHost);
+		cudaMemcpy (mean_x,d_mean_x, K * sizeof(float),cudaMemcpyDeviceToHost);
+		cudaMemcpy (mean_y,d_mean_y, K * sizeof(float),cudaMemcpyDeviceToHost);
+		cudaMemcpy (aux,d_n_elem_cluster, K * sizeof(int),cudaMemcpyDeviceToHost);
 
-		for(int i = 1; i < n_blocks; i++){
-			for(int j = 0; j < K;j++){
-				mean_x[j] += mean_x[j + i*K]; // add this point to the sum of points belonging to cluster
-				mean_y[j] += mean_y[j + i*K];
-				aux[j] += aux[j + i*K]; //update number of elements in cluster
-			}
-		}
 
 		for(int i = 0; i < K;i++){
 			cluster_x[i] = mean_x[i] / (aux[i]);
