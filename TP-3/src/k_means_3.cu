@@ -6,11 +6,9 @@
 
 #include "../include/utils.h"
 
+#define NUM_BLOCKS 128
 #define NUM_THREADS_PER_BLOCK 256
 #define SIZE NUM_BLOCKS*NUM_THREADS_PER_BLOCK
-#ifndef MAX
-#define MAX 128
-#endif
 
 
 //return is number of iterarions
@@ -23,13 +21,13 @@ __global__ void k_means(float *cluster_x,float *cluster_y,const float *arr_x,con
 
 		__shared__ int points[NUM_THREADS_PER_BLOCK]; 
 
-		__shared__ float mean_x[MAX],mean_y[MAX]; //keep values to calculate new centroid
+		__shared__ float mean_x[128],mean_y[128]; //keep values to calculate new centroid
 
-		__shared__ int local_elem_cluster[MAX];
+		__shared__ int local_elem_cluster[128];
 
 		__shared__ float local_arr_x[NUM_THREADS_PER_BLOCK],local_arr_y[NUM_THREADS_PER_BLOCK];
 
-		__shared__ float local_cluster_x[MAX],local_cluster_y[MAX];
+		__shared__ float local_cluster_x[128],local_cluster_y[128];
 
 		__shared__ char flag[NUM_THREADS_PER_BLOCK];
 
@@ -44,18 +42,18 @@ __global__ void k_means(float *cluster_x,float *cluster_y,const float *arr_x,con
 			}
 		}
 
-		if(lid == 1){
-			for(int i = 0; i < K;i++){
+		__syncthreads();
+
+
+		//reset arrays
+		for(int i = 0; i < K;i++){
 				mean_x[i] = 0;	
 				mean_y[i] = 0;
 				local_elem_cluster[i] = 0;
-			}
 		}
 
-		__syncthreads();
-
 		
-		float dist[MAX]; 
+		float dist[128]; 
 		int ind = 0; //lower distance index
 		for(int i = 0; i < K;i++){//calculate distance between points and centroids 
 			float x = (local_cluster_x[i] - local_arr_x[lid]);
@@ -77,7 +75,7 @@ __global__ void k_means(float *cluster_x,float *cluster_y,const float *arr_x,con
 
 		__syncthreads();
 		//printf("lid = %d | mid = %d\n",lid,mid);
-		if(lid == 0){
+		if(!lid){
 			r_flag[blockIdx.x] = false;
 
 			for(int i = 0; i < NUM_THREADS_PER_BLOCK && id + i < N; i++){
@@ -107,6 +105,8 @@ int launch_kernel(float *cluster_x,float *cluster_y,const float *arr_x,const flo
 	const int size_clusters = K * sizeof(float);
 	const int size_points = N * sizeof(float);
 	const int n_blocks = N/NUM_THREADS_PER_BLOCK + 1;
+
+	printf("blocos %d",K*n_blocks);
 	
 	float *mean_x,*mean_y;
 	int *aux;
@@ -136,26 +136,29 @@ int launch_kernel(float *cluster_x,float *cluster_y,const float *arr_x,const flo
 	cudaMalloc((void**) &d_mean_x, K * sizeof(float) * n_blocks);
 	cudaMalloc((void**) &d_mean_y, K * sizeof(float) * n_blocks);
 	cudaMalloc((void**) &d_flag, sizeof(char) * n_blocks);
+	checkCUDAError("malloc");
 
 	//copy data from host to device
 	cudaMemcpy (d_cluster_x,cluster_x,size_clusters,cudaMemcpyHostToDevice);
 	cudaMemcpy (d_cluster_y,cluster_y,size_clusters,cudaMemcpyHostToDevice);
 	cudaMemcpy (d_arr_x,arr_x,size_points,cudaMemcpyHostToDevice);
 	cudaMemcpy (d_arr_y,arr_y,size_points,cudaMemcpyHostToDevice);
+	checkCUDAError("first copy");
 
 	char flag = true;
 
 	//call Kernel
 	while (flag){
-		//startKernelTime ();
+		startKernelTime ();
 		k_means <<< N/NUM_THREADS_PER_BLOCK + 1, NUM_THREADS_PER_BLOCK >>> (d_cluster_x,d_cluster_y,d_arr_x,d_arr_y,d_mean_x,d_mean_y,d_n_elem_cluster,d_old_points,d_flag,N,K);
 		cudaDeviceSynchronize();
-		//stopKernelTime ();
-		
+		checkCUDAError("kernel");
+		stopKernelTime ();
 		cudaMemcpy (mean_x,d_mean_x, K * sizeof(float) * n_blocks,cudaMemcpyDeviceToHost);
 		cudaMemcpy (mean_y,d_mean_y, K * sizeof(float) * n_blocks,cudaMemcpyDeviceToHost);
 		cudaMemcpy (aux,d_n_elem_cluster, K * sizeof(int) * n_blocks,cudaMemcpyDeviceToHost);
 		cudaMemcpy (flags,d_flag, sizeof(char) * n_blocks,cudaMemcpyDeviceToHost);
+		checkCUDAError("loop copy to host");
 
 		flag = flags[0];
 
@@ -176,26 +179,20 @@ int launch_kernel(float *cluster_x,float *cluster_y,const float *arr_x,const flo
 
 		cudaMemcpy (d_cluster_x,cluster_x,size_clusters,cudaMemcpyHostToDevice);
 		cudaMemcpy (d_cluster_y,cluster_y,size_clusters,cudaMemcpyHostToDevice);
+		checkCUDAError("loop copy to device");
 
 		ret++;
 		//printf("flag: %d | ret: %d\n",flag,ret);
 	}
 
-	
+	//Retrive information from device
+	//cudaMemcpy (cluster_x,d_cluster_x,size_clusters,cudaMemcpyDeviceToHost);
+	//cudaMemcpy (cluster_y,d_cluster_y,size_clusters,cudaMemcpyDeviceToHost);
+	//cudaMemcpy (n_elem_cluster,d_n_elem_cluster, K * sizeof(int),cudaMemcpyDeviceToHost);
 
 	for(int i = 0;i < K;i++){
 		n_elem_cluster[i] = aux[i];
 	}
-
-	cudaFree((void**) &d_cluster_x);
-	cudaFree((void**) &d_cluster_y);
-	cudaFree((void**) &d_arr_x);
-	cudaFree((void**) &d_arr_y);
-	cudaFree((void**) &d_old_points);
-	cudaFree((void**) &d_n_elem_cluster);
-	cudaFree((void**) &d_mean_x);
-	cudaFree((void**) &d_mean_y);
-	cudaFree((void**) &d_flag);
 
 
 	free(mean_x);
@@ -215,8 +212,6 @@ int main(int argc, char const *argv[]){
 
 	arr_x = (float*) malloc(sizeof(float) * N);
 	arr_y = (float*) malloc(sizeof(float) * N);
-
-	printf("%d",MAX);
 
 	init(N,K,arr_x,arr_y,cluster_x,cluster_y);
 
