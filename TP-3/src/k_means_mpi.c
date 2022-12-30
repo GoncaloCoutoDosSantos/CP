@@ -90,7 +90,7 @@ int k_means(float *cluster_x,float *cluster_y,float *arr_x,float *arr_y,int *n_e
 	return ret;
 }
 */
-int main(){
+int main(int argc, char *argv[]){
     // Initialize MPI
     int rank, size;
 	MPI_Status status;
@@ -98,44 +98,60 @@ int main(){
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+	printf("rank: %d   breakpoint: 0\n",rank);
+	
 	float *arr_xx,*arr_yy;
 	float *arr_x,*arr_y;
 	float cluster_x[K],cluster_y[K];
 	int n_elem_cluster[K];
 
 	if(rank==0){
+
 		arr_xx = malloc(sizeof(float) * N);
 		arr_yy = malloc(sizeof(float) * N);
 
 		init(N,K,arr_xx,arr_yy,cluster_x,cluster_y);
+		printf("rank: %d   breakpoint: 1\n",rank);
+	
+
 	}
 
 	MPI_Bcast(cluster_x,K,MPI_FLOAT,0,MPI_COMM_WORLD);
 	MPI_Bcast(cluster_y,K,MPI_FLOAT,0,MPI_COMM_WORLD);
+		
+	printf("rank: %d   breakpoint: 2\n",rank);
 
 	int m = N/size;
 
-	MPI_Scatter(arr_xx,N,MPI_FLOAT,arr_x,m,MPI_FLOAT,0,MPI_COMM_WORLD);
-	MPI_Scatter(arr_yy,N,MPI_FLOAT,arr_y,m,MPI_FLOAT,0,MPI_COMM_WORLD);
+	arr_x = malloc(sizeof(float) * m);
+	arr_y = malloc(sizeof(float) * m);
 
+	MPI_Scatter(arr_xx,m,MPI_FLOAT,arr_x,m,MPI_FLOAT,0,MPI_COMM_WORLD);
+	MPI_Scatter(arr_yy,m,MPI_FLOAT,arr_y,m,MPI_FLOAT,0,MPI_COMM_WORLD);
+
+	printf("rank: %d   breakpoint: 3\n",rank);
 
 	float mean_x[K],mean_y[K]; //keep values to calculate new centroid
 	float dist[K]; //auxiliar vector to calculate distance between centroid and a point 
 	float *points; // arrays that save the new and previous allocation of points to clusters
 	int ret = -1; //keep number of iterations(starts at -1 not considering the setup iteration)
-	char flag = 1; //flag of k_means loop 
+	int flag = 1; //flag of k_means loop 
 
 	points = malloc(sizeof(float) * m);
 
-
+	printf("rank: %d   breakpoint: 4\n",rank);
+	
 	while(flag){
 
 		//reset means and n_elem_cluster for calculations
 		for(int i = 0; i <m; i++){
+					printf("rank: %d   breakpoint: reset\n",rank);
 			mean_x[i] = 0;
 			mean_y[i] = 0;
+					printf("rank: %d   breakpoint: reset\n",rank);
 			n_elem_cluster[i] = 0;
 		}
+		printf("rank: %d   breakpoint: reset\n",rank);
 
 		flag = 0; // assume that the final condition is met 
 
@@ -160,13 +176,16 @@ int main(){
 			points[i] = ind; // assigns the new lowest distance centroid to the point 
 
 		}
+		printf("rank: %d   breakpoint: primary loop\n",rank);
 
 		MPI_Barrier(MPI_COMM_WORLD);
+		printf("rank: %d   breakpoint: barrier\n",rank);
 
 		MPI_Reduce(mean_x,mean_x,K,MPI_FLOAT,MPI_SUM,0,MPI_COMM_WORLD);
 		MPI_Reduce(mean_y,mean_y,K,MPI_FLOAT,MPI_SUM,0,MPI_COMM_WORLD);
 		MPI_Reduce(n_elem_cluster,n_elem_cluster,K,MPI_FLOAT,MPI_SUM,0,MPI_COMM_WORLD);
-		MPI_Reduce(flag,flag,1,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
+		MPI_Reduce(&flag,&flag,1,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
+		printf("rank: %d   breakpoint: reduce\n",rank);
 
 		if(rank==0){
 			if(flag!=0) flag=1;
@@ -177,10 +196,10 @@ int main(){
 			}
 			
 		}
-
+		printf("rank: %d   breakpoint: new centroids\n",rank);
 		MPI_Bcast(cluster_x,K,MPI_FLOAT,0,MPI_COMM_WORLD);
 		MPI_Bcast(cluster_y,K,MPI_FLOAT,0,MPI_COMM_WORLD);
-		MPI_Bcast(flag,1,MPI_INT,0,MPI_COMM_WORLD);
+		MPI_Bcast(&flag,1,MPI_INT,0,MPI_COMM_WORLD);
 
 		ret++;
 
@@ -191,7 +210,7 @@ int main(){
 	free(arr_x);
 	free(arr_y);
 
-	if(rank==0) print_ret(cluster_x,cluster_y,n_elem_cluster,N,K,iterarion);
+	if(rank==0) print_ret(cluster_x,cluster_y,n_elem_cluster,N,K,ret);
 
     MPI_Finalize();
 
