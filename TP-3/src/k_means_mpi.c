@@ -4,6 +4,7 @@
 
 #include "../include/utils.h"
 
+
 int main(int argc, char *argv[]){
     // Initialize MPI
     int rank, size;
